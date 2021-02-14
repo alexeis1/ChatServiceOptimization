@@ -1,13 +1,15 @@
 package ru.netology.lesson9
 
 import java.lang.RuntimeException
+import java.util.*
 
 class Chat(
-    val           userId1  : Int,     // - id первого пользователя
-    val           userId2  : Int,     // - id второго пользователя
+    val           chatId   : Int,
+    val           userId1  : UserId,     // - id первого пользователя
+    val           userId2  : UserId,     // - id второго пользователя
     private var autoIncId  : Int = 0, // - счетчик автоинкремента id
                              //контейнер для хранения сообщений чата
-    private var chatData   : MutableMap<Int, ChatMessage> = mutableMapOf<Int,ChatMessage>()
+    private var chatData   : SortedMap<UserId, ChatMessage> = sortedMapOf<UserId,ChatMessage>()
 
 ) {
     private fun newId() = ++autoIncId
@@ -16,10 +18,10 @@ class Chat(
      * Добавляет сообщение в чат
      * возвращает true в случае успеха
      */
-    fun add(senderId : Int, text : String) : Boolean
+    fun add(senderId : UserId, text : String) : Boolean
     {
         val id  = newId()
-        chatData.put(id, ChatMessage(id = id, userId = senderId, text = text))
+        chatData[id] = ChatMessage(id = id, userId = senderId, text = text)
         return true
     }
 
@@ -57,7 +59,7 @@ class Chat(
 
     /**
      * Функция помечает сообщения прочитанными
-     * начаная с lastReadId, но не более
+     * начаная с lastReadId, но не более  count
      */
     fun getMessages(lastReadId : Int, count : Int) : List<ChatMessage>
     {
@@ -71,8 +73,16 @@ class Chat(
             } else {
                 it.value
             }
-        }.toMutableMap()
+        }.toSortedMap()
         return msgList
+    }
+
+    fun last() : ChatMessage?{
+        return try{
+            chatData.values.last()
+        } catch (e : NoSuchElementException) {
+            null
+        }
     }
 }
 
