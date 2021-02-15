@@ -1,13 +1,6 @@
 package ru.netology.lesson9
 
-import java.lang.RuntimeException
-import kotlin.math.*
-
-/**
- * Класс для управления чатами
- */
-
-class ChatService {
+class ChatService : ChatServiceInterface{
     //контейнер для всех чатов.
     private val chatMap     = mutableMapOf<UserId, MutableMap<UserId, Chat>>()
     private var idGenerator = 0 //счетчик автоинкремента id
@@ -49,7 +42,7 @@ class ChatService {
     /**
      * Функция создает новое сообщение, или новый чат с сообщением
      */
-    fun addNewMessage(senderId : UserId, receiverId : UserId, text : String) {
+    override fun addNewMessage(senderId : UserId, receiverId : UserId, text : String) {
         //добавляем сообщение или в существующий чат или в новый
         chatMap[senderId]?.let{it[receiverId]?.add(senderId = senderId, text = text)} ?:
             createChat(senderId, receiverId).add(senderId = senderId, text = text)
@@ -59,81 +52,81 @@ class ChatService {
      * Получить информацию о количестве непрочитанных чатов
      * это количество чатов, в каждом из которых есть хотя бы одно непрочитанное сообщение
      */
-    fun getUnreadChatsCount(receiverId : UserId) : Int
+    override fun getUnreadChatsCount(receiverId : UserId) : Int
     {
         var result = 0
-        chatMap[receiverId]?.forEach() {
-            if (it.value.last()?.readState == false)
+        chatMap[receiverId]?.forEach {
+            //если последнее сообщение в чате не прочитанное
+            if (it.value.last()?.readState == false &&
+                //и оно не от меня, то оно не прочитанное
+                it.value.last()?.userId    != receiverId)
             {
                 result++
-            }
-        }
+            }  //исключение если пользователь неверный
+        } ?: throw UserNotFoundException(receiverId)
         return result
     }
 
     /**
      * Споисок сообщений, по одному последнему из каждого чата
      */
-    fun getChats(receiverId : UserId) : List<ChatPreview> {
+    override fun getChats(receiverId : UserId) : List<ChatPreview> {
         val chatMap = chatMap[receiverId]
         return chatMap?.map {      //конвертируем мап в список
-            it.value.last()?.let { //если последнее сообщение есть делаем запись
+            it.value.last()?.let { //если последнее сообщение есть, то добавляем результат
                     it1 -> ChatPreview(chatId = it.value.chatId, lastMsg = it1)
             } ?:
             ChatPreview(           //пустая запись
                 chatId = it.value.chatId,
                 lastMsg = ChatMessage(id = 0, userId = receiverId, text = "пусто")
-            ) } ?: emptyList()
+            )  //исключение если пользователь неверный
+        } ?: throw UserNotFoundException(receiverId)
     }
 
     /**
-     * Функция помечает сообщения прочитанными
+     * Функция получает сообщения из чата помечает их прочитанными
      * начаная с lastReadId, но не более  count
      */
-    fun getMessages(receiverId : UserId, chatId : Int, lastReadId : Int, count : Int) : List<ChatMessage>
+    override fun getMessages(receiverId : UserId, chatId : Int, lastReadId : Int, count : Int)
+        : List<ChatMessage>
     {
         chatMap[receiverId]?.forEach{ chat ->
                 if (chat.value.chatId == chatId) {
-                    return chat.value.getMessages(lastReadId, count)
-                }
+                    return chat.value.getMessages(receiverId = receiverId, lastReadId = lastReadId, count = count)
+                }   //исключение если пользователь неверный
             } ?: throw UserNotFoundException(receiverId)
-        return emptyList()
+        //исключение если чат не найден
+        throw ChatNotFoundException(chatId)
     }
 
     /**
      * Функция удаляет чат
      */
-    fun deleteChat(receiverId : UserId, chatId : Int)
-    {
-        chatMap[receiverId]?.forEach{ chat ->
-            if (chat.value.chatId == chatId) {
-                deleteChatPrivate(chat.value.userId1, chat.value.userId2)
-            }
+    override fun deleteChat(receiverId : UserId, chatId : Int)
+    {      //у пользователя находим чат по chatId
+        chatMap[receiverId]?.let { userChats->
+            userChats.values.firstOrNull { it.chatId == chatId }?.
+            let {  chat->  //удаляем обе записи чата для обоих аккаунтов
+                deleteChatPrivate(senderId = chat.userId1, receiverId = chat.userId2)
+            } ?: throw ChatNotFoundException(chatId)
         } ?: throw UserNotFoundException(receiverId)
     }
 
     /**
-     * функия удаляет сообщение. Если чат остается пустой то функция delete герерит
-     * исключение ChatIsEmptyException
+     * функия удаляет сообщение. Если чат остается пустой то функция deleteMessage
+     * упдаляет целиком чат
      */
-    fun deleteMessage(receiverId : UserId, msgId : Int)
-    {
-        chatMap[receiverId]?.forEach{ chat ->
-            try {
-                chat.value.delete(msgId)
-            } catch (e : ChatIsEmptyException) {
-                deleteChatPrivate(chat.value.userId1, chat.value.userId2)
-            }
+    override fun deleteMessage(receiverId : UserId, chatId : Int, msgId : Int)
+    {     //у пользователя находим чат по chatId
+        chatMap[receiverId]?.let { userChats->
+            userChats.values.firstOrNull { it.chatId == chatId }?.
+            let {  chat->
+                try{ //удаляем сообщение
+                    chat.delete(id = msgId)
+                } catch (e : ChatIsEmptyException) {//если сообщение посоеднее то и чат тоже
+                    deleteChatPrivate(senderId = chat.userId1, receiverId = chat.userId2)
+                }
+            } ?: throw ChatNotFoundException(chatId)
         } ?: throw UserNotFoundException(receiverId)
     }
 }
-
-/**
- * запись для превью чата
- */
-data class ChatPreview(
-    val chatId : Int,
-    val lastMsg : ChatMessage
-)
-
-class UserNotFoundException(userId : UserId) : RuntimeException("Пользователь с id=$userId не наден")

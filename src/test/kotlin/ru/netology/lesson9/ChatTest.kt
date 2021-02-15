@@ -56,8 +56,8 @@ class ChatTest {
         val chat = Chat(chatId = 1, userId1 = 1, userId2 = 2)
         chat.add(senderId = 1, text = "message")
         chat.add(senderId = 1, text = "message")
-        assertEquals(chat.getMessages(lastReadId = 0, count = 1).size, 1)
-        assertEquals(chat.getMessages(lastReadId = 1, count = 1).size, 1)
+        assertEquals(chat.getMessages(receiverId = 2, lastReadId = 0, count = 1).size, 1)
+        assertEquals(chat.getMessages(receiverId = 2, lastReadId = 1, count = 1).size, 1)
     }
 
     @Test
@@ -65,7 +65,7 @@ class ChatTest {
         val chat = Chat(chatId = 1, userId1 = 1, userId2 = 2)
         chat.add(senderId = 1, text = "message")
         chat.add(senderId = 1, text = "message")
-        assertEquals(chat.getMessages().size, 2)
+        assertEquals(chat.getMessages(2).size, 2)
     }
 
     @Test

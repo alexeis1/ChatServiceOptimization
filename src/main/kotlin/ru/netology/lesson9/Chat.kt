@@ -1,5 +1,6 @@
 package ru.netology.lesson9
 
+import java.lang.Integer.min
 import java.lang.RuntimeException
 import java.util.*
 
@@ -57,26 +58,33 @@ class Chat(
     }
 
     /**
-     * Функция помечает сообщения прочитанными
-     * начаная с lastReadId, но не более count
+     * Функция получает сообщения из чата помечает их прочитанными
+     * начаная с lastReadId, но не более  count
      * если lastReadId будет равен нулю то просматривать будем все
      */
-    fun getMessages(lastReadId : MsgId = 0, count : Int = autoIncId) : List<ChatMessage>
+    fun getMessages(receiverId : UserId, lastReadId : MsgId = 0, count : Int = autoIncId)
+        : List<ChatMessage>
     {
         val maxRead = lastReadId + count + 1
         val msgList = mutableListOf<ChatMessage>()
+                           //помечаем некоторые сообщение прочитанными
         chatData = chatData.mapValues{
-            //сообщение будет или прочитано или скопировано как есть
-            //в новый мап
+            //диапазон можно вычислить так как сообщения физически не удаляются
+            //а возвращаем мы полный список сообщений, в том числе удаленных
             if (it.key in (lastReadId + 1) until maxRead) {
-                val msg = it.value.copy(readState = true)
-                msgList += msg
-                msg
-            } else {
+                // помечаем прочитанными только сообщения не от receiverId (т.е. для receiverId)
+                val msg = if (it.value.userId != receiverId) {
+                              it.value.copy(readState = true)
+                          } else {
+                              it.value
+                          }
+                msgList += msg  //заполняем результирующий список
+                msg  //помещаем или прочтенное или исходное сообщение
+            } else {  //значения вне диапазона
                 it.value
             }
         }.toSortedMap()
-        return msgList
+        return msgList  
     }
 
     fun last() : ChatMessage?{
