@@ -11,17 +11,30 @@ class ChatService {
     //контейнер для всех чатов.
     private val chatMap     = mutableMapOf<UserId, MutableMap<UserId, Chat>>()
     private var idGenerator = 0 //счетчик автоинкремента id
-    private fun genChatId(): Int {return idGenerator++ }
+    private fun genChatId(): Int {return ++idGenerator }
 
+    //количество записей пользователей с чатами
+    fun userRecordsCount() = chatMap.size
+
+    //количество созданных записей для чатов (в 2 раза больше чем чатов)
+    fun chatRecsCount() : Int
+    {
+        return chatMap.values.fold(0) { acc, mutableMap ->
+            acc + mutableMap.values.fold(0){acc2, _ -> acc2 + 1}
+        }
+    }
     /**
      * создает новый пустой чат
      */
     private fun createChat(senderId : UserId, receiverId : UserId) : Chat
     {
         val chat = Chat(chatId = genChatId(), userId1 = senderId, userId2 = receiverId)
-        //добавляем 2е записи для каждого из пользователей
-        (chatMap[senderId]   ?: mutableMapOf<UserId, Chat>()).apply { this[receiverId] = chat}
-        (chatMap[receiverId] ?: mutableMapOf<UserId, Chat>()).apply { this[senderId]   = chat}
+        //добавляем 2е записи с чатом для каждого из пользователей или предварительно
+        //создаем аккаунты для каждого из пользователей и добавляем туда записии с чатом
+        chatMap[senderId]?.apply{ this[receiverId] = chat } ?:
+            chatMap.put(senderId, mutableMapOf(Pair(receiverId, chat)))
+        chatMap[receiverId]?.apply{ this[senderId] = chat }?:
+            chatMap.put(receiverId, mutableMapOf(Pair(senderId, chat)))
         return chat
     }
 

@@ -5,9 +5,10 @@ package ru.netology.lesson9
  */
 
 typealias UserId = Int
+typealias MsgId  = Int
 
 data class ChatMessage(
-    val id           : Int,              // - сообщения
+    val id           : MsgId,            // - сообщения
     val userId       : UserId,           // - создателя сообщения
     val text         : String,           // - тест сообщения
     val date         : Int = 0,          // - unix date

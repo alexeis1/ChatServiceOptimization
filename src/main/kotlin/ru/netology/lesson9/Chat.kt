@@ -7,22 +7,23 @@ class Chat(
     val           chatId   : Int,
     val           userId1  : UserId,     // - id первого пользователя
     val           userId2  : UserId,     // - id второго пользователя
-    private var autoIncId  : Int = 0, // - счетчик автоинкремента id
+    private var autoIncId  : MsgId = 0, // - счетчик автоинкремента id
                              //контейнер для хранения сообщений чата
-    private var chatData   : SortedMap<UserId, ChatMessage> = sortedMapOf<UserId,ChatMessage>()
+    private var chatData   : SortedMap<MsgId, ChatMessage> = sortedMapOf<MsgId, ChatMessage>()
 
 ) {
     private fun newId() = ++autoIncId
 
     /**
      * Добавляет сообщение в чат
-     * возвращает true в случае успеха
+     * возвращает сообщение
      */
-    fun add(senderId : UserId, text : String) : Boolean
+    fun add(senderId : UserId, text : String) : ChatMessage
     {
         val id  = newId()
-        chatData[id] = ChatMessage(id = id, userId = senderId, text = text)
-        return true
+        val msg = ChatMessage(id = id, userId = senderId, text = text)
+        chatData[id] = msg
+        return msg
     }
 
     /**
@@ -31,12 +32,10 @@ class Chat(
      */
     fun edit(id : Int, newText : String) : Boolean
     {
-        chatData[id].apply {
-            this?.let {
-                if (it.deletedState) throw CannotEditDeletedMessage(id)
-                chatData.put(id, it.copy(text = newText, readState = false, deletedState = false))
-            } ?: throw MessageNotFoundException(id)
-        }
+        chatData[id]?.apply {
+            if (this.deletedState) throw CannotEditDeletedMessage(id)
+            chatData[id] = this.copy(text = newText, readState = false, deletedState = false)
+        }?: throw MessageNotFoundException(id)
         return true
     }
 
@@ -59,14 +58,17 @@ class Chat(
 
     /**
      * Функция помечает сообщения прочитанными
-     * начаная с lastReadId, но не более  count
+     * начаная с lastReadId, но не более count
+     * если lastReadId будет равен нулю то просматривать будем все
      */
-    fun getMessages(lastReadId : Int, count : Int) : List<ChatMessage>
+    fun getMessages(lastReadId : MsgId = 0, count : Int = autoIncId) : List<ChatMessage>
     {
-        val maxRead = lastReadId + count
+        val maxRead = lastReadId + count + 1
         val msgList = mutableListOf<ChatMessage>()
         chatData = chatData.mapValues{
-            if (it.value.id in (lastReadId + 1) until maxRead) {
+            //сообщение будет или прочитано или скопировано как есть
+            //в новый мап
+            if (it.key in (lastReadId + 1) until maxRead) {
                 val msg = it.value.copy(readState = true)
                 msgList += msg
                 msg
@@ -78,11 +80,7 @@ class Chat(
     }
 
     fun last() : ChatMessage?{
-        return try{
-            chatData.values.last()
-        } catch (e : NoSuchElementException) {
-            null
-        }
+        return chatData.values.findLast { !it.deletedState }
     }
 }
 
