@@ -1,4 +1,4 @@
-package ru.netology.lesson9
+package ru.netology.lesson10
 
 class ChatService : ChatServiceInterface{
     //контейнер для всех чатов.
@@ -36,8 +36,8 @@ class ChatService : ChatServiceInterface{
      */
     private fun deleteChatPrivate(senderId : UserId, receiverId : UserId)
     {   //удаляем обе записи из мапы
-        chatMap[senderId]?.apply  { this.remove(receiverId) } ?: throw UserNotFoundException(senderId)
-        chatMap[receiverId]?.apply{ this.remove(senderId)   } ?: throw UserNotFoundException(senderId)
+        chatMap[senderId]?.  remove(receiverId) ?: throw UserNotFoundException(senderId)
+        chatMap[receiverId]?.remove(senderId)   ?: throw UserNotFoundException(senderId)
     }
     /**
      * Функция создает новое сообщение, или новый чат с сообщением

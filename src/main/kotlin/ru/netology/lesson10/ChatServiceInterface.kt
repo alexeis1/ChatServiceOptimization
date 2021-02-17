@@ -1,4 +1,4 @@
-package ru.netology.lesson9
+package ru.netology.lesson10
 
 /**
  * интерфейс для управления чатами
