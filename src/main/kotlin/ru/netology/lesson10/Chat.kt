@@ -61,7 +61,7 @@ class Chat(
      * начаная с lastReadId, но не более  count
      * если lastReadId будет равен нулю то просматривать будем все
      */
-    fun getMessages(receiverId : UserId, lastReadId : MsgId = 0, count : Int = autoIncId)
+   /* fun getMessages(receiverId : UserId, lastReadId : MsgId = 0, count : Int = autoIncId)
         : List<ChatMessage>
     {
         val maxRead = lastReadId + count + 1
@@ -84,6 +84,28 @@ class Chat(
             }
         }.toSortedMap()
         return msgList  
+    }  */
+
+    /**
+     * Функция получает сообщения из чата помечает их прочитанными
+     * начаная с lastReadId, но не более  count
+     * если lastReadId будет равен нулю то просматривать будем все
+     */
+    fun getMessages(receiverId : UserId, lastReadId : MsgId = 0, count : Int = autoIncId)
+            : List<ChatMessage>
+    {
+        //составляем новый список сообщений
+        return chatData.asSequence().filter { it.key > lastReadId }.take(count)
+            //помечаем сообщения прочитанными
+            .map{
+                if (it.value.userId != receiverId) {
+                    val read = it.value.copy(readState = true)
+                    chatData[it.key] = read
+                    read
+                } else {
+                    it.value
+                }
+            }.toList()
     }
 
     fun last() : ChatMessage?{

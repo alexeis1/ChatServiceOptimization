@@ -1,5 +1,7 @@
 package ru.netology.lesson10
 
+import java.util.*
+
 class ChatService : ChatServiceInterface{
     //контейнер для всех чатов.
     private val chatMap     = mutableMapOf<UserId, MutableMap<UserId, Chat>>()
@@ -52,7 +54,23 @@ class ChatService : ChatServiceInterface{
      * Получить информацию о количестве непрочитанных чатов
      * это количество чатов, в каждом из которых есть хотя бы одно непрочитанное сообщение
      */
+
     override fun getUnreadChatsCount(receiverId : UserId) : Int
+    {
+        var result = 0
+        chatMap[receiverId]?.forEach {
+            
+            //если последнее сообщение в чате не прочитанное
+            if (it.value.last()?.readState == false &&
+                //и оно не от меня, то оно не прочитанное
+                it.value.last()?.userId    != receiverId)
+            {
+                result++
+            }  //исключение если пользователь неверный
+        } ?: throw UserNotFoundException(receiverId)
+        return result
+    }
+    /*override fun getUnreadChatsCount(receiverId : UserId) : Int
     {
         var result = 0
         chatMap[receiverId]?.forEach {
@@ -65,7 +83,7 @@ class ChatService : ChatServiceInterface{
             }  //исключение если пользователь неверный
         } ?: throw UserNotFoundException(receiverId)
         return result
-    }
+    } */
 
     /**
      * Споисок сообщений, по одному последнему из каждого чата
@@ -130,3 +148,16 @@ class ChatService : ChatServiceInterface{
         } ?: throw UserNotFoundException(receiverId)
     }
 }
+  /*
+inline fun <K, V> SortedMap<out K, V>.forEachReversed(action: (Map.Entry<K, V>) -> Unit): Unit {
+    this.asSequence().
+    this.lastKey()
+    val entries =
+    val iterator = this.listIterator(size)
+    while (iterator.hasPrevious()) {
+        val element = iterator.previous()
+        if (predicate(element)) return element
+    }
+    return null
+}*/
+
